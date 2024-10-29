@@ -5,6 +5,7 @@
     "deploy": "wrangler deploy --minify"
   },
   "dependencies": {
+    "@honojs/validator": "^0.1.2",
     "hono": "^4.6.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
