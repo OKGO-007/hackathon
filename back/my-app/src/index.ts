@@ -3,6 +3,7 @@ import { prettyJSON } from "hono/pretty-json";
 import { todos } from "./todo/api";
 import { cors } from 'hono/cors'; // corsをインポート
 import { basicAuth } from 'hono/basic-auth';  // basicAuthをインポート
+import 'dotenv/config';
 
 
 
