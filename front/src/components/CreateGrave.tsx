@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { CirclePicker } from 'react-color';
+import Header from './Header';
 
 type Position = {
   x: number;
@@ -172,6 +173,8 @@ const CreateGrave = () => {
 
 
   return (
+    <div>
+      <Header />
     <div
       style={{
         width: '100vw',
@@ -240,6 +243,7 @@ const CreateGrave = () => {
           <CirclePicker onChangeComplete={(color) => handleBackgroundColorChange(color.hex)} />
         </div>
       </div>
+    </div>
     </div>
   );
 };

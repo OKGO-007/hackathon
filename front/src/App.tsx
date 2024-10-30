@@ -4,12 +4,14 @@ import './App.css';
 import { Link } from "react-router-dom";
 import SubmitTest from './components/SubmitTest';
 // import CreateGrave from './components/CreateGrave';
+import Header from './components/Header';
 
 import Button from '@mui/material/Button';
 
 function App() {
   return (
-    <div className="App">
+    <div >
+      <Header />
       <SubmitTest />
       <Button component={Link} to="/create_grave" >Clicke</Button>
     </div>
