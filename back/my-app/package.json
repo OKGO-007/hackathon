@@ -6,12 +6,15 @@
   },
   "dependencies": {
     "@honojs/validator": "^0.1.2",
-    "hono": "^4.6.7",
+    "hono": "^4.6.8",
+    "pg": "^8.13.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240925.0",
+    "@types/dotenv": "^8.2.3",
+    "@types/pg": "^8.11.10",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "wrangler": "^3.79.0"
