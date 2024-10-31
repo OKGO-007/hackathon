@@ -1,0 +1,273 @@
+// テキストをカーソルで拡大縮小ができる。また、テキストを選択して移動させようとすると面白い移動の仕方をする。
+
+import React, { useRef, useState } from 'react';
+
+type Position = {
+  x: number;
+  y: number;
+};
+
+type ImageData = {
+  id: number;
+  src: string;
+  position: Position;
+  rotate: number;
+  scale: number;
+  text: string;
+  textDirection: 'horizontal' | 'vertical';
+  textPosition: Position;
+  textScale: number;
+};
+
+const imageOptions = [
+  { label: 'お墓', src: '/images/osoushiki_ohaka.png' },
+  { label: 'bousi', src: '/images/cap.png' },
+  { label: 'お墓2', src: '/images/tombstone-151488_640.png' },
+  // 他の画像も同様に追加
+];
+
+const SelectGrave = () => {
+  const [images, setImages] = useState<ImageData[]>([]);
+  const [currentImageId, setCurrentImageId] = useState<number | null>(null);
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
+  const dragOffset = useRef<Position>({ x: 0, y: 0 });
+  const textDragOffset = useRef<Position>({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+  const isTextDragging = useRef(false);
+
+  const handleMouseDown = (event: React.MouseEvent, id: number) => {
+    setCurrentImageId(id);
+    const image = images.find((img) => img.id === id);
+    if (!image) return;
+
+    dragOffset.current = {
+      x: event.clientX - image.position.x,
+      y: event.clientY - image.position.y,
+    };
+
+    isDragging.current = true;
+    event.preventDefault();
+  };
+
+  const handleMouseMove = (event: React.MouseEvent) => {
+    if (isDragging.current && currentImageId !== null) {
+      const newPosition = {
+        x: event.clientX - dragOffset.current.x,
+        y: event.clientY - dragOffset.current.y,
+      };
+
+      setImages((prevImages) =>
+        prevImages.map((img) =>
+          img.id === currentImageId ? { ...img, position: newPosition } : img
+        )
+      );
+    }
+
+    if (isTextDragging.current && currentImageId !== null) {
+      const newTextPosition = {
+        x: event.clientX - textDragOffset.current.x,
+        y: event.clientY - textDragOffset.current.y,
+      };
+
+      setImages((prevImages) =>
+        prevImages.map((img) =>
+          img.id === currentImageId ? { ...img, textPosition: newTextPosition } : img
+        )
+      );
+    }
+  };
+
+  const handleMouseUp = () => {
+    isDragging.current = false;
+    isTextDragging.current = false;
+  };
+
+  const handleInsertImage = () => {
+    if (!selectedImageSrc) return;
+
+    setImages((prevImages) => [
+      ...prevImages,
+      {
+        id: Date.now(),
+        src: selectedImageSrc,
+        position: { x: 100, y: 100 },
+        rotate: 0,
+        scale: 1,
+        text: '',
+        textDirection: 'horizontal',
+        textPosition: { x: 0, y: 0 },
+        textScale: 1,
+      },
+    ]);
+  };
+
+  const handleTextChange = (text: string) => {
+    if (currentImageId === null) return;
+
+    setImages((prevImages) =>
+      prevImages.map((img) =>
+        img.id === currentImageId ? { ...img, text } : img
+      )
+    );
+  };
+
+  const handleTextDirectionChange = (direction: 'horizontal' | 'vertical') => {
+    if (currentImageId === null) return;
+
+    setImages((prevImages) =>
+      prevImages.map((img) =>
+        img.id === currentImageId ? { ...img, textDirection: direction } : img
+      )
+    );
+  };
+
+  const handleTextMouseDown = (event: React.MouseEvent, id: number) => {
+    setCurrentImageId(id);
+    const image = images.find((img) => img.id === id);
+    if (!image) return;
+
+    textDragOffset.current = {
+      x: event.clientX - image.textPosition.x,
+      y: event.clientY - image.textPosition.y,
+    };
+
+    isTextDragging.current = true;
+    event.preventDefault();
+  };
+
+  const handleTextScale = (event: React.WheelEvent) => {
+    if (currentImageId === null) return;
+
+    const scaleChange = event.deltaY < 0 ? 0.1 : -0.1;
+
+    setImages((prevImages) =>
+      prevImages.map((img) =>
+        img.id === currentImageId
+          ? { ...img, textScale: Math.max(0.1, img.textScale + scaleChange) }
+          : img
+      )
+    );
+  };
+
+  return (
+    <div>
+      <div
+        style={{
+          width: '100vw',
+          height: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f0f0f0',
+          overflow: 'hidden',
+        }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleTextScale}
+      >
+        <div
+          style={{
+            width: 600,
+            height: 600,
+            position: 'relative',
+            backgroundColor: '#ccc',
+            overflow: 'hidden',
+          }}
+        >
+          {images.map((image) => (
+            <div
+              key={image.id}
+              onMouseDown={(e) => handleMouseDown(e, image.id)}
+              style={{
+                width: 100 * image.scale,
+                height: 100 * image.scale,
+                position: 'absolute',
+                top: image.position.y,
+                left: image.position.x,
+                cursor: 'move',
+                transform: `rotate(${image.rotate}deg)`,
+                transformOrigin: 'center',
+                border: currentImageId === image.id ? '1px solid rgba(0, 0, 255, 0.5)' : 'none',
+              }}
+            >
+              <img
+                src={image.src}
+                alt="draggable"
+                style={{ width: '100%', height: '100%' }}
+              />
+              {image.text && (
+                <div
+                  onMouseDown={(e) => handleTextMouseDown(e, image.id)}
+                  style={{
+                    position: 'absolute',
+                    top: image.textPosition.y,
+                    left: image.textPosition.x,
+                    transform: `scale(${image.textScale})`,
+                    color: 'black',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: image.textDirection === 'vertical' ? 'column' : 'row',
+                    cursor: 'move',
+                  }}
+                >
+                  {image.text.split('').map((char, index) => (
+                    <span key={index} style={{ display: 'inline-block' }}>
+                      {char}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '20px' }}>
+          <p>画像選択</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', maxWidth: '200px' }}>
+            {imageOptions.map((option) => (
+              <div
+                key={option.src}
+                onClick={() => setSelectedImageSrc(option.src)}
+                style={{
+                  cursor: 'pointer',
+                  margin: '5px',
+                  border: selectedImageSrc === option.src ? '2px solid blue' : 'none',
+                  borderRadius: '5px',
+                }}
+              >
+                <img
+                  src={option.src}
+                  alt={option.label}
+                  style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                />
+              </div>
+            ))}
+          </div>
+          <button onClick={handleInsertImage} disabled={!selectedImageSrc}>
+            選択した画像を挿入
+          </button>
+          {currentImageId !== null && (
+            <>
+              <input
+                type="text"
+                placeholder="画像に表示するテキスト"
+                onChange={(e) => handleTextChange(e.target.value)}
+                style={{ marginTop: '10px' }}
+              />
+              <select
+                onChange={(e) => handleTextDirectionChange(e.target.value as 'horizontal' | 'vertical')}
+                style={{ marginTop: '10px' }}
+              >
+                <option value="horizontal">横</option>
+                <option value="vertical">縦</option>
+              </select>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SelectGrave;
