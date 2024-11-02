@@ -4,13 +4,13 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-export const openAiRequest = async (messages: string) => {
+export const openAiRequest = async (title: string, character_name: string) => {
   const completion = await openai.chat.completions.create({
     model: "gpt-3.5-turbo", // string;
     messages: [
       {
         role: "user", // "user" | "assistant" | "system"
-        content: messages, // string
+        content: title+"の"+character_name+"が死んでしまった時に送るお別れの言葉を考えてください。", // string
       },
     ],
     max_tokens: 100,

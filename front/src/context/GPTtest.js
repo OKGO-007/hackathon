@@ -8,8 +8,9 @@ const openai = new OpenAI({
   
 async function main() {
 	const completion = await openai.chat.completions.create({
-		messages: [{ role: 'user', content: 'あなたの名前は?' }],
+		messages: [{ role: 'user', content: '鬼滅の刃の煉獄さんが死んだ際にかけるお別れの言葉を考えてください。' }],
 		model: 'gpt-3.5-turbo',
+        max_tokens: 100,
 	});
 	
 	console.log(completion.choices[0].message.content);
