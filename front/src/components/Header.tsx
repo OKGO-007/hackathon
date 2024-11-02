@@ -76,34 +76,57 @@ const Header = () => {
                 </Typography>
               </Box>
             </Link>
+
+            {/* Create Graveの右隣にボタンを配置 */}
+            <Link to="/mylist_grave" style={{ textDecoration: 'none', marginLeft: '10px' }}>
+            <Button
+                variant="contained"
+                sx={{
+                backgroundColor: 'white', // ボタンを白に
+                borderRadius: '20px',
+                padding: '10px 20px',
+                '&:hover': { backgroundColor: '#f0f0f0' }, // ホバー時の色を薄いグレーに
+                }}
+            >
+                <Typography variant="subtitle1" sx={{ color: '#4B4B4B' }}>
+                My List
+                </Typography>
+            </Button>
+            </Link>
+
           </Box>
 
-          {user ? (
-            <Button
-              variant="contained"
-              onClick={handleLogout}
-              sx={{ backgroundColor: pink[500], '&:hover': { backgroundColor: pink[700] }, margin: 1 }}
-            >
-              Logout
-            </Button>
-          ) : (
-            <>
+          <Box sx={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+            
+            {user ? (
               <Button
                 variant="contained"
-                component={Link} to="/login"
+                onClick={handleLogout}
                 sx={{ backgroundColor: pink[500], '&:hover': { backgroundColor: pink[700] }, margin: 1 }}
               >
-                Login
+                Logout
               </Button>
-              <Button
-                variant="contained"
-                component={Link} to="/signup"
-                sx={{ backgroundColor: purple[500], '&:hover': { backgroundColor: purple[700] }, margin: 1 }}
-              >
-                Signup
-              </Button>
-            </>
-          )}
+            ) : (
+              <>
+                <Button
+                  variant="contained"
+                  component={Link}
+                  to="/login"
+                  sx={{ backgroundColor: pink[500], '&:hover': { backgroundColor: pink[700] }, margin: 1 }}
+                >
+                  Login
+                </Button>
+                <Button
+                  variant="contained"
+                  component={Link}
+                  to="/singup"
+                  sx={{ backgroundColor: purple[500], '&:hover': { backgroundColor: purple[700] }, margin: 1 }}
+                >
+                  Signup
+                </Button>
+              </>
+            )}
+          </Box>
         </Toolbar>
       </Container>
     </AppBar>

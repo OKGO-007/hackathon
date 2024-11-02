@@ -6,6 +6,7 @@ import CharacterSearch from './components/CharacterSearch';
 import ApiProvider from "./context/AnimeApi"
 import SignUp from './components/Singup';
 import Login from './components/Login';
+import MyListGrave from './components/MyListGrave';
 
 import { GraveProvider } from './context/GraveContext';
 
@@ -20,6 +21,7 @@ const Routers = () => {
                   <Route path="/" element={<App />} />
                   <Route path="/create_grave" element={<CreateGrave />} />
                   <Route path="/character_search" element={<CharacterSearch />} />
+                  <Route path="/mylist_grave" element={<MyListGrave />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/singup" element={<SignUp />} />
               </Routes>
