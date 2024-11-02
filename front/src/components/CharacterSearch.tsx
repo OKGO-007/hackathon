@@ -29,17 +29,13 @@ const CharacterSearch: React.FC = () => {
 
     const handleSelectCharacter = (character: Character) => {
         setSelectedCharacter(character); // キャラクターを選択して状態に保存
-        console.log(character)
     };
 
     const handleSelectAnime = (anime: Anime) => {
         setSelectedAnime(anime); // キャラクターを選択して状態に保存
-        console.log(anime);
     };
 
 
-
-    console.log("titel", animeTitles)
     return (
         <div>
             <label>キャラクター検索</label>

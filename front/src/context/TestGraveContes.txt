@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
-import { collection, addDoc, getDocs, QuerySnapshot, DocumentData, doc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, getDocs, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { db, auth } from "../components/Firebase"; // Firebase設定ファイルのインポート
 import { useAuthState } from 'react-firebase-hooks/auth';
 
@@ -14,15 +14,12 @@ type GraveData = {
   visitors: number;
   isPublic: boolean;
   userId: string;
-  timestamp: number; 
 };
 
 // GraveContextの型定義
 interface GraveContextType {
   addGrave: (data: Omit<GraveData, 'userId'>) => Promise<void>;
   graves: GraveData[]; // お墓データの配列
-  allPublicGraves: GraveData[]; // 公開されているお墓データの配列
-  setAllPublicGraves: React.Dispatch<React.SetStateAction<GraveData[]>>; // setAllPublicGraves関数
 }
 
 // GraveContextの作成
@@ -31,8 +28,8 @@ const GraveContext = createContext<GraveContextType | undefined>(undefined);
 // GraveProviderコンポーネントの定義
 export const GraveProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user] = useAuthState(auth);
-  const [allPublicGraves, setAllPublicGraves] = useState<GraveData[]>([]); // お墓データを管理するステート
   const [graves, setGraves] = useState<GraveData[]>([]); // お墓データを管理するステート
+
   
   // getDocsを使ってドキュメントを取得
   const fetchGraves = async () => {
@@ -41,14 +38,16 @@ export const GraveProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return; // ユーザーが存在しない場合は何もせず終了
     }
 
-    const Ref = doc(db, 'graves', user.uid); // gravesコレクション内のユーザーIDのドキュメント
-    const userGravesRef = collection(Ref, 'grave'); // ユーザーのUIDが存在する場合にコレクションのパスを修正
+    const userGravesRef = collection(db, user.uid); // ユーザーのUIDが存在する場合にコレクションのパスを修正
   
     try {
       const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(userGravesRef); // Promiseを待機
+      console.log("ggg",querySnapshot)
       const updatedData: GraveData[] = []; // GraveData[]型を指定
       querySnapshot.forEach((doc) => {
+        // console.log(`${doc.id} => ${JSON.stringify(doc.data())}`);
         const dataG: GraveData = { id: doc.id, ...doc.data() } as GraveData;
+        console.log("dataG",dataG)
         updatedData.push(dataG);
       });
       setGraves(updatedData);
@@ -57,29 +56,49 @@ export const GraveProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
   };
 
-  const fetchAllGraves = async () => {
-    const userGravesRef = collection(db, 'all_graves'); // ユーザーのUIDが存在する場合にコレクションのパスを修正
-  
-    try {
-      const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(userGravesRef); // Promiseを待機
-      const Alldata: GraveData[] = []; // GraveData[]型を指定
-      querySnapshot.forEach((doc) => {
-        const a: GraveData = { id: doc.id, ...doc.data() } as GraveData;
-        Alldata.push(a);
-      });
-      setAllPublicGraves(Alldata);
-    } catch (error) {
-      console.error("Error fetching graves:", error);
-    }
-  };
-
   // Gravesのデータをリアルタイムで取得
   useEffect(() => {
     if (user) {
-      fetchGraves(); // ユーザーが存在する場合に呼び出す
-      fetchAllGraves();
+      const userGravesRef = collection(db, user.uid); // コレクションのパスを修正
+
+
+      const a = query(collection(db, user.uid), orderBy('date', 'asc'));
+      console.log("query 出て", a);
+
+      // const unsubscribe = onSnapshot(a, (querySnapshot) => { // 'q' を 'a' に変更
+      //   const updatedData: GraveData[] = []; // GraveData[]型を指定
+      //   querySnapshot.forEach((doc) => {
+      //     // doc.data()にデータ、doc.idにドキュメントIDが含まれる
+      //     const dataG: GraveData = { id: doc.id, ...doc.data() } as GraveData; // idも含めるようにする (deleteする時に使う)
+      //     updatedData.push(dataG);
+      //   });
+      //   setGraves(updatedData);
+      //   console.log("updatedData 出て", updatedData);
+      // });
+
+      // console.log("graves 出て", graves);
+
+
+      // const q = query(userGravesRef, orderBy('date', 'asc')); // 追加: 日付でソート
+      // const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      //   const updatedGraves: GraveData[] = [];
+      //   querySnapshot.forEach((doc) => {
+      //     const dataWithId = { id: doc.id, ...doc.data() } as GraveData; // idも含める
+      //     updatedGraves.push(dataWithId);
+      //   });
+      //   setGraves(updatedGraves); // ステートを更新
+      //   console.log("Updated graves:", updatedGraves); // データ取得後にログ出力
+      //   console.log("Updated graves:", graves); // データ取得後にログ出力
+      // });
+
+      if (user) {
+        fetchGraves(); // ユーザーが存在する場合に呼び出す
+      }
+
+      // クリーンアップ関数: コンポーネントがアンマウントされるときにリスナーを解除
+      // return () => unsubscribe();
     }
-  }, [user, graves]); // userが変更されたときに実行
+  }, [user]); // userが変更されたときに実行
 
   const addGrave = async (data: Omit<GraveData, 'userId'>) => {
     if (!user) return;
@@ -94,7 +113,7 @@ export const GraveProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   return (
-    <GraveContext.Provider value={{ addGrave, graves, allPublicGraves, setAllPublicGraves }}>
+    <GraveContext.Provider value={{ addGrave, graves }}>
       {children}
     </GraveContext.Provider>
   );
