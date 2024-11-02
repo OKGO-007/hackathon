@@ -5,6 +5,8 @@ import { todos } from "./todo/api";
 import { cors } from 'hono/cors'; // corsをインポート
 import { basicAuth } from 'hono/basic-auth';  // basicAuthをインポート
 import 'dotenv/config';
+import tombstoneRouter from './tombstones/tombstones';
+
 
 
 
@@ -21,6 +23,7 @@ const app = new Hono();
 
 // 簡単なルートを追加（任意）
 app.get('/', (c) => c.text('Hello, Hono!'));
+app.route('/tombstones', tombstoneRouter);
 
 // サーバーを起動
 // const server = serve(app);
