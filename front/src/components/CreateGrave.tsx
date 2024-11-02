@@ -1,13 +1,21 @@
-//墓に直接文字を入れるよりテキストを動かして入れたほうが楽かも
-
-import React, { useRef, useState } from 'react';
-import { CirclePicker } from 'react-color';
+import React, { useContext, useRef, useState, useEffect } from 'react';
 import Header from './Header';
-import SelectGrave from './SelectGrave';
 import html2canvas from 'html2canvas';
 import { fontOptions } from './Font/fonts.js'; // fontOptionsをインポート
 
+import { useGrave } from '../context/GraveContext';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+// Firebase設定ファイルのインポート（例）
+import { db, auth } from "../components/Firebase"; // authが含まれているか確認
+import { storage } from "../components/Firebase";
 import InputColor from 'react-input-color';
+import { getFirestore, collection, addDoc, doc, setDoc } from "firebase/firestore";
+import { AnimeApi, Character, Anime } from '../context/AnimeApi';
+import CharacterSearch from './CharacterSearch';
+
+
+import { validateImage } from "image-validator";
+
 
 type Position = {
   x: number;
@@ -37,6 +45,7 @@ const imageOptions = [
   // 他の画像も同様に追加
 ];
 
+
 const CreateGrave = () => {
   const [images, setImages] = useState<ImageData[]>([]);
   const [currentImageId, setCurrentImageId] = useState<number | null>(null);
@@ -44,20 +53,168 @@ const CreateGrave = () => {
   const isDragging = useRef(false);
   const [background, setBackground] = useState<string | null>(null);
   const [background_colore, setBackground_colore] = useState<string | null>(null);
-
   const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
-
   const moveIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
   const [selectedFont, setSelectedFont] = useState(fontOptions[0].value); // デフォルトフォントを設定
   const [isFrameEnabled, setIsFrameEnabled] = useState<Boolean | null>(false);  //文字のフレームをありかなしか
-
-  const [nameMoveWidth, setNameMoveWidth] = useState<number| null>(1);//名前の移動px数
-
+  const [nameMoveWidth, setNameMoveWidth] = useState<number| null>(2);//名前の移動px数
   // 色関連
   const [colorText, setColorText] = useState('#000000');
   const [colorBack, setColorBack] = useState('#ccc');
   const [colorFrame, setColorFrame] = useState("#000000")
+  // アニメ検索
+  // const [searchName, setSearchName] = useState('');
+  // const [searchTitle, setSearchTitle] = useState('');
+  const context = useContext(AnimeApi);
+  // 公開非公開
+  const [selectPublic, setSelectPublic] = useState<boolean | null>(false); //墓画像を公開するかしないか
+  // 作成成功のモーダル
+  const [isOpen, setIsOpen] = useState<boolean>(false); // モーダルの開閉状態を管理
+
+  // 1MB以上のファイルの時にエラーをこのしたの変数に記述する、まだUserが見れないので後でやる。
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+
+  // contextがundefinedの場合の処理を追加
+  if (!context) {
+    throw new Error('CharacterSearch must be used within an ApiProvider');
+  }
+
+  const { characters, fetchCharacters, error, animeTitles, fetchAnimeTitles, selectedCharacter, setSelectedCharacter, selectedAnime, setSelectedAnime, } = context;
+
+  // useEffect(() => {
+  //   /* 第1引数には実行させたい副作用関数を記述*/
+  //   console.log("CreateGrave Select Character", selectedCharacter)
+  //   console.log("CreateGrave Select Character", selectedAnime)
+  // },[selectedCharacter, selectedAnime]) 
+  
+
+  // const handleSearch = () => {
+  //   fetchCharacters(searchName);
+  // };
+
+  // const handleSearchTitle = () => {
+  //     fetchAnimeTitles(searchTitle);
+  // };
+
+  // // if (!context) {
+  // //   throw new Error('CharacterSearch must be used within an ApiProvider');
+  // // }
+  // // const { characters, fetchCharacters, error, animeTitles, fetchAnimeTitles } = context;
+
+  const { addGrave } = useGrave();
+
+
+  const validateFile = async (selectedFile: File): Promise<boolean> => {
+    const limitFileSize = 1 * 1024 * 1024;  // ファイルサイズ制限
+
+    if (selectedFile.size > limitFileSize) {
+      setErrorMsg("File size is too large, please keep it under 3 GB.");
+      return false;
+    }
+
+    const isValidImage = await validateImage(selectedFile);
+
+    if (!isValidImage) {
+      setErrorMsg("You cannot upload anything other than image files.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSaveAsImage2 = async () => {
+    const element = document.getElementById('capture-area'); // キャプチャするエリアのIDを指定
+  
+    // elementがnullでないことを確認
+    if (!element) {
+      console.error("Element with ID 'capture-area' not found.");
+      return;
+    }
+  
+    try {
+      // HTMLをCanvasに変換して画像を生成
+      const canvas = await html2canvas(element);
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          const file = new File([blob], 'grave-image.png', { type: 'image/png' });
+          if (file && (await validateFile(file))) {
+            // ユーザーIDを取得
+            const user = auth.currentUser;
+            if (!user) {
+              console.error("User not authenticated");
+              return;
+            }
+
+
+            const timestamp = new Date().getTime();
+            const uniqueFilename = `${timestamp}_${file.name}`;
+            const storageRef = ref(storage, `graves/${user.uid}/${uniqueFilename}`);
+
+            // storageにアップロード
+            await uploadBytes(storageRef, file);
+
+            // await addDoc(collection(db, "Images"), {
+            //   fileName: uniqueFilename,
+            //   timestamp: new Date(),
+            // });
+    
+            // // Storageに保存するためのファイルパスを生成
+            // const storageRef = ref(storage, `graves/${user.uid}/grave-image.png`);
+            
+            // // Storageに画像をアップロード
+            // await uploadBytes(storageRef, file);
+    
+            // アップロードされた画像のURLを取得
+            const imageUrl = await getDownloadURL(storageRef);
+    
+            // 新しい墓のデータをGraveContextに追加
+
+          
+              const newGraveData = {
+                imageUrl,
+                animeInfo: selectedAnime?.title,
+                animeId: selectedAnime?.id,
+                characterName: selectedCharacter?.name,
+                characterId: selectedCharacter?.id,
+                visitors: 0,
+                isPublic: selectPublic,
+              };
+
+            // const newGraveData = {
+            //   imageUrl,
+            //   animeInfo: 'アニメの情報',
+            //   animeId: 'アニメのID',
+            //   characterName: 'キャラクターの名前',
+            //   characterId: 'キャラクターのID',
+            //   visitors: 0,
+            //   isPublic: true,
+            // };
+    
+            // Firestoreにデータを保存
+            // await addDoc(collection(db, "graves"), {
+            //   ...newGraveData,
+            //   userId: user.uid,
+            //   createdAt: new Date()
+            // });
+
+            const docRef = await addDoc(collection(db, user.uid), {
+              ...newGraveData,
+              userId: user.uid,
+              timestamp: new Date(),
+            });
+    
+            console.log("Grave data saved successfully!");
+
+            setIsOpen(true);
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Error saving image:", error);
+    }
+  };
+
  
 
   
@@ -220,10 +377,10 @@ const CreateGrave = () => {
     }
   };
 
-  const handleBackgroundColorChange = (color: string) => {
-    setBackground_colore(color);
-    console.log("color",color)
-  };
+  // const handleBackgroundColorChange = (color: string) => {
+  //   setBackground_colore(color);
+  //   console.log("color",color)
+  // };
 
 
   const handleImageDelete = () =>{
@@ -297,8 +454,11 @@ const CreateGrave = () => {
     );
   };
 
+
+  // 使わないかも
   const handleSaveAsImage = async () => {
     const element = document.getElementById('capture-area'); // キャプチャするエリアのIDを指定
+    console.log("image",element)
   
     // elementがnullでないことを確認
     if (!element) {
@@ -324,11 +484,36 @@ const CreateGrave = () => {
   const handleFrameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsFrameEnabled(event.target.checked); // チェックボックスの状態を更新
   };
+
+
+
+  const [isOption1Selected, setIsOption1Selected] = useState<boolean>(true);
+    const [isOption2Selected, setIsOption2Selected] = useState<boolean>(false);
+
+    const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const { name } = event.target;
+
+        // 選択されたオプションに応じて状態を更新
+        if (name === 'publick') {
+            setIsOption1Selected(true);
+            setIsOption2Selected(false); // option2をオフにする
+            setSelectPublic(true)
+        } else if (name === 'private') {
+            setIsOption1Selected(false); // option1をオフにする
+            setIsOption2Selected(true);
+            setSelectPublic(false)
+        }
+
+
+    };
+
+    const handleClose = () => {
+      setIsOpen(false); // モーダルを閉じる
+  };
  
   return (
     <div>
       <Header />
-      
     <div
       style={{
         width: '100vw',
@@ -405,6 +590,10 @@ const CreateGrave = () => {
       
       <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '400px', width: '100%',marginLeft: '50px', maxHeight: '600px', overflowY: 'auto' }}>
         {/* 墓石編集 */}
+        <label>キャラクター名: {selectedCharacter ? selectedCharacter.name : "選択されていません"}</label>
+        <label>タイトル名: {selectedAnime ? selectedAnime.title : "選択されていません"}</label>
+        <br></br>
+        <CharacterSearch />
         <label style={{ marginTop: '20px' }} >画像選択</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', maxWidth: '200px' }}>
           {imageOptions.map((option) => (
@@ -550,10 +739,62 @@ const CreateGrave = () => {
           onChange={(value) => setBackground_colore(value.hex)} // valueは{ hex: string; rgb: { r: number; g: number; b: number; a: number; } }の形式
         />
 
+        <label style={{ marginTop: '20px' }} >公開非公開</label>
+        <label>
+            <input
+                type="checkbox"
+                name="publick"
+                checked={isOption1Selected}
+                onChange={handleCheckboxChange}
+            />
+            Public
+        </label>
+        <label>
+            <input
+                type="checkbox"
+                name="private"
+                checked={isOption2Selected}
+                onChange={handleCheckboxChange}
+            />
+            Private
+        </label>
+
 
         {/* 画像として保存ボタン */}
         <label style={{ marginTop: '20px' }} >画像の保存</label>
-        <button onClick={handleSaveAsImage}>保存する</button>
+        <button onClick={handleSaveAsImage2}>保存する</button>
+
+        {isOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)', // 背景を半透明に
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        padding: '20px',
+                        borderRadius: '5px',
+                        boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)',
+                        width: '300px', // 幅を指定
+                        height: '100px', // 高さを指定
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center', // 子要素を中央に配置
+                        alignItems: 'center' // 子要素を中央に配置
+                    }}>
+                        <h2 style={{ margin: 0 }}>作成完了！！</h2> {/* 上下のマージンをゼロに */}
+                        <button onClick={handleClose} style={{
+                            marginTop: '20px', // ボタンとテキストの間にスペースを確保
+                        }}>閉じる</button>
+                    </div>
+                </div>
+            )}
       </div>
     </div>
 
