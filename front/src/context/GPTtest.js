@@ -1,9 +1,11 @@
 require('dotenv').config();
+//import dotenv from 'dotenv';
+//dotenv.config();
 const OpenAI = require('openai');
 
 
 const openai = new OpenAI({
-    apiKey: '', // defaults to process.env["OPENAI_API_KEY"]
+    apiKey: process.env.OPENAI_API_KEY, // defaults to process.env["OPENAI_API_KEY"]
 });
   
 async function main() {
