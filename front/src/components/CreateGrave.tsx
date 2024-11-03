@@ -1,6 +1,7 @@
 import React, { useContext, useRef, useState, useEffect } from 'react';
 import Header from './Header';
 import html2canvas from 'html2canvas';
+
 import { fontOptions } from './Font/fonts.js'; // fontOptionsをインポート
 
 import { useGrave } from '../context/GraveContext';
@@ -67,7 +68,7 @@ const CreateGrave = () => {
   // const [searchTitle, setSearchTitle] = useState('');
   const context = useContext(AnimeApi);
   // 公開非公開
-  const [selectPublic, setSelectPublic] = useState<boolean | null>(false); //墓画像を公開するかしないか
+  const [selectPublic, setSelectPublic] = useState<boolean | null>(true); //墓画像を公開するかしないか
   // 作成成功のモーダル
   const [isOpen, setIsOpen] = useState<boolean>(false); // モーダルの開閉状態を管理
 
@@ -82,25 +83,6 @@ const CreateGrave = () => {
 
   const { characters, fetchCharacters, error, animeTitles, fetchAnimeTitles, selectedCharacter, setSelectedCharacter, selectedAnime, setSelectedAnime, } = context;
 
-  // useEffect(() => {
-  //   /* 第1引数には実行させたい副作用関数を記述*/
-  //   console.log("CreateGrave Select Character", selectedCharacter)
-  //   console.log("CreateGrave Select Character", selectedAnime)
-  // },[selectedCharacter, selectedAnime]) 
-  
-
-  // const handleSearch = () => {
-  //   fetchCharacters(searchName);
-  // };
-
-  // const handleSearchTitle = () => {
-  //     fetchAnimeTitles(searchTitle);
-  // };
-
-  // // if (!context) {
-  // //   throw new Error('CharacterSearch must be used within an ApiProvider');
-  // // }
-  // // const { characters, fetchCharacters, error, animeTitles, fetchAnimeTitles } = context;
 
   const { addGrave } = useGrave();
 
@@ -154,23 +136,10 @@ const CreateGrave = () => {
             // storageにアップロード
             await uploadBytes(storageRef, file);
 
-            // await addDoc(collection(db, "Images"), {
-            //   fileName: uniqueFilename,
-            //   timestamp: new Date(),
-            // });
-    
-            // // Storageに保存するためのファイルパスを生成
-            // const storageRef = ref(storage, `graves/${user.uid}/grave-image.png`);
-            
-            // // Storageに画像をアップロード
-            // await uploadBytes(storageRef, file);
-    
             // アップロードされた画像のURLを取得
             const imageUrl = await getDownloadURL(storageRef);
     
             // 新しい墓のデータをGraveContextに追加
-
-          
               const newGraveData = {
                 imageUrl,
                 animeInfo: selectedAnime?.title,
@@ -179,30 +148,28 @@ const CreateGrave = () => {
                 characterId: selectedCharacter?.id,
                 visitors: 0,
                 isPublic: selectPublic,
+                timestamp: timestamp,
               };
 
-            // const newGraveData = {
-            //   imageUrl,
-            //   animeInfo: 'アニメの情報',
-            //   animeId: 'アニメのID',
-            //   characterName: 'キャラクターの名前',
-            //   characterId: 'キャラクターのID',
-            //   visitors: 0,
-            //   isPublic: true,
-            // };
-    
-            // Firestoreにデータを保存
-            // await addDoc(collection(db, "graves"), {
-            //   ...newGraveData,
-            //   userId: user.uid,
-            //   createdAt: new Date()
-            // });
 
-            const docRef = await addDoc(collection(db, user.uid), {
+              const userGravesRef = doc(db, 'graves', user.uid); // gravesコレクション内のユーザーIDのドキュメント
+
+              // 新しいお墓データを追加
+              const docRef = await addDoc(collection(userGravesRef, 'grave'), {
               ...newGraveData,
               userId: user.uid,
-              timestamp: new Date(),
-            });
+              // timestamp: new Date(),
+              });
+
+              if(selectPublic == true){
+                // const userGravesRef = doc(db, 'all_graves'); // gravesコレクション内のユーザーIDのドキュメント
+                // 新しいお墓データを追加
+                const docRef = await addDoc(collection(db, 'all_graves'), {
+                ...newGraveData,
+                userId: user.uid,
+                // timestamp: new Date(),
+              });
+              }
     
             console.log("Grave data saved successfully!");
 
@@ -562,28 +529,42 @@ const CreateGrave = () => {
               alt="draggable"
               style={{ width: '100%', height: '100%' }}
             />
-            <div
-              style={{
-                position: 'absolute',
-                top: image.textPosition.y,
-                left: image.textPosition.x,
-                whiteSpace: image.textDirection === 'horizontal' ? 'nowrap' : 'normal',
-                writingMode: image.textDirection === 'vertical' ? 'vertical-rl' : 'horizontal-tb',
-                fontSize: 16 * image.textScale,
-                fontFamily: selectedFont,
-                color: colorText,
-                textShadow: isFrameEnabled
+
+          <div
+            style={{
+              position: 'absolute',
+              top: image.textPosition.y,
+              left: image.textPosition.x,
+              fontSize: 16 * image.textScale,
+              fontFamily: selectedFont,
+              color: colorText,
+              whiteSpace: 'nowrap', // 文字が折り返されないように設定
+              lineHeight: '1.5em', // 行間の調整
+              textShadow: isFrameEnabled
                 ? `
                 -1px -1px 0 ${colorFrame},  
                 1px -1px 0 ${colorFrame},
                 -1px  1px 0 ${colorFrame},
-                  1px  1px 0 ${colorFrame}
+                1px  1px 0 ${colorFrame}
                 `
-              : 'none', // 縁取りが無効な場合はなし
-              }}
-            >
-              {image.text}
-            </div>
+                : 'none',
+            }}
+          >
+            {image.textDirection === 'vertical' ? (
+              <div style={{ writingMode: 'vertical-rl', textAlign: 'center' }}>
+                {image.text}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center' }}>
+                {image.text}
+              </div>
+            )}
+          </div>
+
+
+
+
+
           </div>
         ))}
       </div>

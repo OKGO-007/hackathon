@@ -46,6 +46,7 @@ import {
           setUser(initialState);
         }
       });
+      
   
       // クリーンアップ関数を返す
       return () => unsubscribe();
