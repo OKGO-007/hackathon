@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import SubmitTest from './components/SubmitTest';
 import Header from './components/Header';
 import { Drawer, List, ListItem, ListItemText, ListItemButton, ListItemIcon, Toolbar, Box, Typography, Collapse, TextField, Button } from '@mui/material';
-import MailIcon from '@mui/icons-material/Mail';
+import PersonIcon from '@mui/icons-material/Person';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import './App.css';
@@ -23,7 +24,17 @@ function App() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        backgroundImage: 'url(/backgrounds/okumono_kumo225.png)', // 画像のパス
+        backgroundSize: 'cover', // 画像をカバー
+        backgroundPosition: 'center', // 画像の位置を中央に
+        backgroundRepeat: 'no-repeat' // 繰り返しを防ぐ
+      }}
+    >
       {/* Header */}
       <Header />
 
@@ -36,49 +47,39 @@ function App() {
             {/* Character Search Section */}
             <ListItem disablePadding>
               <ListItemButton onClick={handleToggleCharacterSearch}>
-                <ListItemIcon><MailIcon /></ListItemIcon>
+                <ListItemIcon><PersonIcon /></ListItemIcon>
                 <ListItemText primary="Character Search" />
                 {openCharacterSearch ? <ExpandLess /> : <ExpandMore />}
               </ListItemButton>
             </ListItem>
             <Collapse in={openCharacterSearch} timeout="auto" unmountOnExit>
               <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <TextField
-                  label="キャラクター名を検索"
-                  variant="outlined"
-                  fullWidth
-                />
-                <Button variant="contained" color="primary">検索</Button>
+                {/* キャラクター検索用のTextFieldとButton */}
               </Box>
             </Collapse>
 
             {/* Title Search Section */}
             <ListItem disablePadding>
               <ListItemButton onClick={handleToggleTitleSearch}>
-                <ListItemIcon><MailIcon /></ListItemIcon>
+                <ListItemIcon><MenuBookIcon /></ListItemIcon>
                 <ListItemText primary="Title Search" />
                 {openTitleSearch ? <ExpandLess /> : <ExpandMore />}
               </ListItemButton>
             </ListItem>
             <Collapse in={openTitleSearch} timeout="auto" unmountOnExit>
               <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <TextField
-                  label="タイトルを検索"
-                  variant="outlined"
-                  fullWidth
-                />
-                <Button variant="contained" color="primary">検索</Button>
+                {/* タイトル検索用のTextFieldとButton */}
               </Box>
             </Collapse>
           </List>
         </Box>
 
         {/* Main Content */}
-        <Box component="main" sx={{ flexGrow: 1, p: 2 }}> {/* p: 3をp: 2に変更 */}
+        <Box component="main" sx={{ flexGrow: 1, p: 2 }}>
           <ListGrave />
         </Box>
       </div>
-    </div>
+    </Box>
   );
 }
 

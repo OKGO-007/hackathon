@@ -5,11 +5,7 @@ const OpenAI = require('openai');
 
 
 const openai = new OpenAI({
-<<<<<<< HEAD
-    apiKey: '', // defaults to process.env["REACT_APP_OPENAI_API_KEY"]
-=======
     apiKey: process.env.OPENAI_API_KEY, // defaults to process.env["OPENAI_API_KEY"]
->>>>>>> 168ab30f14539cb7f8a9f4faeb008528df642fce
 });
   
 async function main() {
