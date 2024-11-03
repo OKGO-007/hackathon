@@ -14,6 +14,8 @@ import { getFirestore, collection, addDoc, doc, setDoc } from "firebase/firestor
 import { AnimeApi, Character, Anime } from '../context/AnimeApi';
 import CharacterSearch from './CharacterSearch';
 
+import { openAiRequest } from '../context/ChatGPTAPI';
+
 
 import { validateImage } from "image-validator";
 
@@ -75,6 +77,12 @@ const CreateGrave = () => {
   // 1MB以上のファイルの時にエラーをこのしたの変数に記述する、まだUserが見れないので後でやる。
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const [message, setMessage] = useState<string | null>(null);
+
+  const [imageUrl, setImageUrl] = useState<string | null>(null); // imageUrlを管理する状態を追加
+
+  const [loading, setLoading] = useState<boolean>(false); // imageUrlを管理する状態を追加
+
 
   // contextがundefinedの場合の処理を追加
   if (!context) {
@@ -105,84 +113,104 @@ const CreateGrave = () => {
     return true;
   };
 
+  // handleSaveAsImage2はこのコンポーネントの中に
   const handleSaveAsImage2 = async () => {
-    const element = document.getElementById('capture-area'); // キャプチャするエリアのIDを指定
-  
-    // elementがnullでないことを確認
+    setLoading(true); // アップロード開始時にloadingをtrueにする
+    setIsOpen(true);
+    const element = document.getElementById('capture-area');
+
     if (!element) {
-      console.error("Element with ID 'capture-area' not found.");
-      return;
+        console.error("Element with ID 'capture-area' not found.");
+        return;
     }
-  
+
     try {
-      // HTMLをCanvasに変換して画像を生成
-      const canvas = await html2canvas(element);
-      canvas.toBlob(async (blob) => {
+        const canvas = await html2canvas(element);
+        // Promiseを使ってtoBlobを待つ
+        const blob = await new Promise<Blob | null>(resolve => {
+            canvas.toBlob(resolve, 'image/png');
+        });
+
         if (blob) {
-          const file = new File([blob], 'grave-image.png', { type: 'image/png' });
-          if (file && (await validateFile(file))) {
-            // ユーザーIDを取得
+            const file = new File([blob], 'grave-image.png', { type: 'image/png' });
+            if (file && (await validateFile(file))) {
+                if (selectedAnime !== null && selectedCharacter !== null) {
+                    const user = auth.currentUser;
+                    if (!user) {
+                        console.error("User not authenticated");
+                        return;
+                    }
+
+                    const timestamp = new Date().getTime();
+                    const uniqueFilename = `${timestamp}_${file.name}`;
+                    const storageRef = ref(storage, `graves/${user.uid}/${uniqueFilename}`);
+
+                    // 画像をstorageにアップロード
+                    await uploadBytes(storageRef, file);
+                    const uploadedImageUrl = await getDownloadURL(storageRef); // アップロードされた画像のURLを取得
+                    setImageUrl(uploadedImageUrl); // 画像URLを状態に保存
+
+                    // OpenAIからのレスポンスを取得
+                    if (selectedAnime && selectedCharacter) {
+                        const response = await openAiRequest(selectedAnime.title, selectedCharacter.name);
+                        console.log("OpenAIの返答:", response);
+                        setMessage(response); // メッセージを設定
+                    } else {
+                        console.error("アニメタイトルまたはキャラクター名が未定義です。");
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error saving image:", error);
+    }
+};
+
+// メッセージが変更された後の処理を待機
+useEffect(() => {
+    const saveGraveData = async () => {
+        if (message && imageUrl) { // messageとimageUrlの両方が設定されていることを確認
             const user = auth.currentUser;
             if (!user) {
-              console.error("User not authenticated");
-              return;
+                console.error("User not authenticated");
+                return;
             }
 
-
-            const timestamp = new Date().getTime();
-            const uniqueFilename = `${timestamp}_${file.name}`;
-            const storageRef = ref(storage, `graves/${user.uid}/${uniqueFilename}`);
-
-            // storageにアップロード
-            await uploadBytes(storageRef, file);
-
-            // アップロードされた画像のURLを取得
-            const imageUrl = await getDownloadURL(storageRef);
-    
-            // 新しい墓のデータをGraveContextに追加
-              const newGraveData = {
-                imageUrl,
+            const newGraveData = {
+                imageUrl: imageUrl, // ここで保存したimageUrlを使用
                 animeInfo: selectedAnime?.title,
                 animeId: selectedAnime?.id,
                 characterName: selectedCharacter?.name,
                 characterId: selectedCharacter?.id,
                 visitors: 0,
                 isPublic: selectPublic,
-                timestamp: timestamp,
-              };
+                timestamp: new Date().getTime(),
+                message: message,
+            };
 
-
-              const userGravesRef = doc(db, 'graves', user.uid); // gravesコレクション内のユーザーIDのドキュメント
-
-              // 新しいお墓データを追加
-              const docRef = await addDoc(collection(userGravesRef, 'grave'), {
-              ...newGraveData,
-              userId: user.uid,
-              // timestamp: new Date(),
-              });
-
-              if(selectPublic == true){
-                // const userGravesRef = doc(db, 'all_graves'); // gravesコレクション内のユーザーIDのドキュメント
-                // 新しいお墓データを追加
-                const docRef = await addDoc(collection(db, 'all_graves'), {
+            const userGravesRef = doc(db, 'graves', user.uid);
+            
+            // 新しいお墓データを追加
+            await addDoc(collection(userGravesRef, 'grave'), {
                 ...newGraveData,
                 userId: user.uid,
-                // timestamp: new Date(),
-              });
-              }
-    
+            });
+
+            if (selectPublic) {
+                await addDoc(collection(db, 'all_graves'), {
+                    ...newGraveData,
+                    userId: user.uid,
+                });
+            }
+
             console.log("Grave data saved successfully!");
-
-            setIsOpen(true);
-          }
+            // setIsOpen(true);
+            setLoading(false);
         }
-      });
-    } catch (error) {
-      console.error("Error saving image:", error);
-    }
-  };
+    };
 
- 
+    saveGraveData(); // メッセージが設定されたときにお墓データを保存
+}, [message, imageUrl]); // messageまたはimageUrlが変更されたときに実行
 
   
   const handleMouseDown = (event: React.MouseEvent, id: number) => {
@@ -455,7 +483,7 @@ const CreateGrave = () => {
 
 
   const [isOption1Selected, setIsOption1Selected] = useState<boolean>(true);
-    const [isOption2Selected, setIsOption2Selected] = useState<boolean>(false);
+  const [isOption2Selected, setIsOption2Selected] = useState<boolean>(false);
 
     const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name } = event.target;
@@ -762,17 +790,23 @@ const CreateGrave = () => {
                         padding: '20px',
                         borderRadius: '5px',
                         boxShadow: '0 0 10px rgba(0, 0, 0, 0.3)',
-                        width: '300px', // 幅を指定
-                        height: '100px', // 高さを指定
+                        width: '300px',
+                        height: '100px',
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'center', // 子要素を中央に配置
-                        alignItems: 'center' // 子要素を中央に配置
+                        justifyContent: 'center',
+                        alignItems: 'center'
                     }}>
-                        <h2 style={{ margin: 0 }}>作成完了！！</h2> {/* 上下のマージンをゼロに */}
-                        <button onClick={handleClose} style={{
-                            marginTop: '20px', // ボタンとテキストの間にスペースを確保
-                        }}>閉じる</button>
+                        {loading ? (
+                            <h2 style={{ margin: 0 }}>アップロード中...</h2> // loadingがtrueの時に表示
+                        ) : (
+                            <>
+                                <h2 style={{ margin: 0 }}>作成完了！！</h2> {/* 上下のマージンをゼロに */}
+                                <button onClick={handleClose} style={{
+                                    marginTop: '20px', // ボタンとテキストの間にスペースを確保
+                                }}>閉じる</button>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

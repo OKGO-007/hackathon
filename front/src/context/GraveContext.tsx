@@ -14,7 +14,8 @@ type GraveData = {
   visitors: number;
   isPublic: boolean;
   userId: string;
-  timestamp: number; 
+  timestamp: number;
+  message: string;
 };
 
 // GraveContextの型定義
@@ -77,8 +78,8 @@ export const GraveProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   useEffect(() => {
     if (user) {
       fetchGraves(); // ユーザーが存在する場合に呼び出す
-      fetchAllGraves();
     }
+    fetchAllGraves();
   }, [user, graves]); // userが変更されたときに実行
 
   const addGrave = async (data: Omit<GraveData, 'userId'>) => {
