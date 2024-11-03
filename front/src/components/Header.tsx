@@ -34,70 +34,103 @@ const Header = () => {
       }}
     >
       <Container>
-        <Toolbar sx={{ justifyContent: 'space-between', minHeight: '200px' }}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                borderRadius: '50px',
-                padding: '10px 20px',
-                boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)',
-              }}
-            >
-              <Button sx={{ width: 160, '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.3)' } }}>
-                <Typography variant="h5" component="div" sx={{ color: '#4B4B4B', fontWeight: 'bold', fontSize: '1.5rem' }}>
-                  推しが死んだ
-                </Typography>
-              </Button>
-            </Box>
-          </Link>
+        <Toolbar sx={{ justifyContent: 'space-between', minHeight: '250px' }}>
+        <Link to="/" style={{ textDecoration: 'none' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            borderRadius: '50px',
+            padding: '10px 20px', // 内側の余白を増やす
+            margin: '10px', // 外側の余白を設定
+            boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)',
+          }}
+        >
+          <img src="/header_logo.png" alt="logo" style={{ width: '50px', height: '50px', marginRight: '10px' }} />
+
+          <Button sx={{ width: 160, '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.3)' } }}>
+            <Typography variant="h5" component="div" sx={{ color: '#4B4B4B', fontWeight: 'bold', fontSize: '1.5rem' }}>
+              推しが死んだ
+            </Typography>
+          </Button>
+        </Box>
+      </Link>
+
 
           <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
-            <Link to="/create_grave" style={{ textDecoration: 'none' }}>
-              <Box
-                sx={{
-                  width: 160,
-                  height: 50,
-                  borderRadius: '80px 80px 0 0',
-                  backgroundColor: '#a9a9a9',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  '&:hover': { backgroundColor: '#8c8c8c' },
-                  boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)',
-                }}
-              >
-                <Typography variant="subtitle1" sx={{ color: '#4B4B4B' }}>
-                  Create Grave
-                </Typography>
-              </Box>
-            </Link>
+            {/* Public ListボタンをCreate Graveと同じデザインで左側に追加 */}
+            <Link to="/" style={{ textDecoration: 'none' }}>
+          <Box
+            sx={{
+              width: 160,
+              height: 60,
+              borderRadius: '80px 80px 0 0',
+              backgroundColor: '#a9a9a9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              '&:hover': { backgroundColor: '#8c8c8c' },
+              boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)',
+              mx: 1, // 左右の余白を追加
+            }}
+          >
+            <Typography variant="subtitle1" sx={{ color: '#ffffff', fontFamily: '"Comic Sans MS", "Arial", sans-serif', }}>
+              Public List
+            </Typography>
+          </Box>
+        </Link>
 
-            {/* Create Graveの右隣にボタンを配置 */}
-            <Link to="/mylist_grave" style={{ textDecoration: 'none', marginLeft: '10px' }}>
-            <Button
-                variant="contained"
-                sx={{
-                backgroundColor: 'white', // ボタンを白に
-                borderRadius: '20px',
-                padding: '10px 20px',
-                '&:hover': { backgroundColor: '#f0f0f0' }, // ホバー時の色を薄いグレーに
-                }}
-            >
-                <Typography variant="subtitle1" sx={{ color: '#4B4B4B' }}>
-                My List
-                </Typography>
-            </Button>
-            </Link>
+        <Link to="/create_grave" style={{ textDecoration: 'none' }}>
+          <Box
+            sx={{
+              width: 160,
+              height: 60,
+              borderRadius: '80px 80px 0 0',
+              backgroundColor: '#a9a9a9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              '&:hover': { backgroundColor: '#8c8c8c' },
+              boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)',
+              mx: 1, // 左右の余白を追加
+            }}
+          >
+            <Typography variant="subtitle1" sx={{ color: '#ffffff', fontFamily: '"Comic Sans MS", "Arial", sans-serif', }}>
+              Create Grave
+            </Typography>
+          </Box>
+        </Link>
+
+        <Link to="/mylist_grave" style={{ textDecoration: 'none' }}>
+          <Box
+            sx={{
+              width: 160,
+              height: 60,
+              borderRadius: '80px 80px 0 0',
+              backgroundColor: '#a9a9a9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              '&:hover': { backgroundColor: '#8c8c8c' },
+              boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)',
+              mx: 1, // 左右の余白を追加
+            }}
+          >
+            <Typography variant="subtitle1" sx={{ color: '#ffffff', fontFamily: '"Comic Sans MS", "Arial", sans-serif', }}>
+              My List
+            </Typography>
+          </Box>
+        </Link>
+
 
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
-            
             {user ? (
               <Button
                 variant="contained"
@@ -119,7 +152,7 @@ const Header = () => {
                 <Button
                   variant="contained"
                   component={Link}
-                  to="/singup"
+                  to="/signup"
                   sx={{ backgroundColor: purple[500], '&:hover': { backgroundColor: purple[700] }, margin: 1 }}
                 >
                   Signup
